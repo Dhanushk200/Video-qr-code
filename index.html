@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Video to QR Code Generator</title>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <!-- Firebase Storage -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .video-qr-generator {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            width: 320px;
+        }
+        h2 {
+            color: #000;
+            margin-bottom: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        #progress {
+            display: none;
+            color: #000;
+            margin-bottom: 10px;
+        }
+        #qrcode {
+            margin: 20px 0;
+        }
+        #download-button {
+            display: none;
+            background-color: #000;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        #download-button:hover {
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-qr-generator">
+        <h2>Generate Video QR Code</h2>
+        <input type="file" id="video-file" accept="video/*" onchange="uploadAndGenerateQRCode()">
+        <div id="progress">Uploading...</div>
+        <div id="qrcode"></div>
+        <a id="download-button" href="#" download="qrcode.png">Download QR Code</a>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCXM83imLZGSAYZfFXv_rIvKO9FPW1RbbI",
+            authDomain: "qr-code-generator-7878e.firebaseapp.com",
+            projectId: "qr-code-generator-7878e",
+            storageBucket: "qr-code-generator-7878e.appspot.com",
+            messagingSenderId: "596540475438",
+            appId: "1:596540475438:web:0e73fb973479dd787ff7bf"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+
+        function uploadAndGenerateQRCode() {
+            const fileInput = document.getElementById('video-file');
+            const progressText = document.getElementById('progress');
+
+            if (fileInput.files.length === 0) {
+                alert('Please select a video file.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+
+            // Optional: Add file size and type validation
+            if (file.size > 100 * 1024 * 1024) { // 100MB limit
+                alert('File size exceeds the 100MB limit.');
+                return;
+            }
+
+            const storageRef = storage.ref('videos/' + file.name);
+            const uploadTask = storageRef.put(file);
+
+            // Show progress indicator
+            progressText.style.display = 'block';
+
+            uploadTask.on('state_changed', (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                progressText.textContent = `Upload is ${Math.round(progress)}% done`;
+            }, (error) => {
+                console.error('Upload failed:', error);
+                progressText.textContent = 'Upload failed!';
+            }, () => {
+                // Upload completed successfully
+                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                    progressText.textContent = 'Upload complete!';
+                    generateQRCode(downloadURL);
+                });
+            });
+        }
+
+        function generateQRCode(videoURL) {
+            const size = 256; // QR code size
+            const canvas = document.createElement('canvas');
+            const qrcodeContainer = document.getElementById('qrcode');
+            const downloadButton = document.getElementById('download-button');
+
+            // Clear any previous QR code
+            qrcodeContainer.innerHTML = '';
+
+            qrcodeContainer.appendChild(canvas);
+
+            QRCode.toCanvas(canvas, videoURL, { width: size, height: size }, function (error) {
+                if (error) {
+                    console.error(error);
+                } else {
+                    const qrImage = canvas.toDataURL("image/png");
+                    downloadButton.href = qrImage;
+                    downloadButton.style.display = 'block';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
